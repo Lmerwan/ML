@@ -2,6 +2,7 @@ import streamlit as st
 import datetime
 import yfinance as yf
 import plotly.graph_objects as go
+import pandas as pd
 
 # Set up your web app with a wider layout and title
 st.set_page_config(layout="wide", page_title="Stock Data Explorer")
@@ -29,9 +30,20 @@ stock = yf.Ticker(symbol)
 with st.spinner("Loading stock data..."):
     data = yf.download(symbol, start=sdate, end=edate)
 
-# Reset index to avoid timezone issues
+# Debugging: Check columns and convert Date column if necessary
+st.write("Data Columns:", data.columns)  # Display column names to verify structure
+
+# Ensure data is not empty
 if not data.empty:
-    data = data.reset_index()  # Reset index to ensure proper date handling
+    # Reset index to convert Date to a regular column and explicitly ensure it's datetime
+    data = data.reset_index()
+    if 'Date' in data.columns:
+        data['Date'] = pd.to_datetime(data['Date'])  # Ensure Date is in datetime format
+
+    # Check for any NaN values in the Close column and drop them if found
+    if data['Close'].isnull().any():
+        st.warning("Missing values found in 'Close' column. Dropping these rows.")
+        data = data.dropna(subset=['Close'])
 
     # Create and display interactive line chart
     fig = go.Figure()
